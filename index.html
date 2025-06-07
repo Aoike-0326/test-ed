@@ -2,171 +2,109 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>〇〇高校ナビゲーション</title>
+  <title>文化祭案内アプリ</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: sans-serif;
+      background: #f8f8f8;
       margin: 0;
-      padding: 0;
-      background: #f0f0f0;
-      color: #333;
-      min-height: 100vh;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
       padding: 20px;
-      text-align: center;
     }
-
-    h1 {
-      font-size: 1.8em;
-      margin-bottom: 1em;
-    }
-
-    button {
-      padding: 1em 2em;
-      font-size: 1em;
-      background-color: #0088cc;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 0.5em;
-    }
-
-    .screen {
+    .section {
       display: none;
     }
-
-    .screen.active {
+    .section.active {
       display: block;
     }
-
-    .floor-buttons {
-      margin-bottom: 1em;
+    .btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      margin-top: 10px;
+      cursor: pointer;
     }
-
-    .floor-buttons button {
-      margin: 0.3em;
-      padding: 0.7em 1.5em;
-      font-size: 1em;
-    }
-
-    .destination-buttons {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .destination-buttons button {
-      margin: 0.3em 0;
-      padding: 0.7em 1.5em;
-      font-size: 1em;
-      width: 80%;
+    .destination-list button {
+      display: block;
+      width: 100%;
       text-align: left;
-    }
-
-    .confirm-box {
+      margin: 5px 0;
+      padding: 10px;
       background: white;
-      padding: 1.5em;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      margin-top: 1em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
     }
-
-    .btn.red {
-      background: #e63946;
-    }
-
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- 起動画面 -->
-    <div class="screen active" id="startScreen">
-      <h1>〇〇高校<br>ナビゲーションシステム</h1>
-      <button onclick="showDestinationScreen()">案内を開始する</button>
-      <p style="margin-top: 1em; font-size: 0.9em; color: gray;">※ モーションと方向の許可をお願いします</p>
-    </div>
 
-    <!-- 目的地選択画面 -->
-    <div class="screen" id="destinationScreen">
-      <h1>目的地を選択してください</h1>
-      <div class="floor-buttons">
-        <button onclick="showDestinations('1F')">1F</button>
-        <button onclick="showDestinations('2F')">2F</button>
-        <button onclick="showDestinations('3F')">3F</button>
-        <button onclick="showDestinations('all')">一覧</button>
-      </div>
-      <div class="destination-buttons" id="destinationList"></div>
-    </div>
+  <!-- 起動画面 -->
+  <div class="section active" id="start-screen">
+    <h1>〇〇高校 文化祭ナビ</h1>
+    <button class="btn" onclick="showQrScanner()">出発地点QRを読み取る</button>
+    <p>※カメラの許可をしてください</p>
+  </div>
 
-    <!-- 案内確認画面 -->
-    <div class="screen" id="confirmScreen">
-      <h1>案内の確認</h1>
-      <div class="confirm-box">
-        <p id="confirmText">CP01 → ???</p>
-        <button onclick="goBackToDestinations()">＜戻る</button>
-        <button class="btn red" onclick="startNavigation()">スタート</button>
-      </div>
+  <!-- QR読み取り -->
+  <div class="section" id="qr-scanner-screen">
+    <h2>QRコードをスキャンしてください</h2>
+    <div id="reader" style="width: 300px;"></div>
+  </div>
+
+  <!-- 目的地選択 -->
+  <div class="section" id="destination-screen">
+    <h2>目的地を選択してください</h2>
+    <div class="destination-list">
+      <button onclick="selectDestination('3-4', 45, 'cp03')">3-4 →</button>
+      <button onclick="selectDestination('2-2', 120, 'cp07')">2-2 →</button>
+      <button onclick="selectDestination('野外ステージ', 200, 'cp10')">野外ステージ →</button>
     </div>
   </div>
 
   <script>
-    const startScreen = document.getElementById('startScreen');
-    const destinationScreen = document.getElementById('destinationScreen');
-    const confirmScreen = document.getElementById('confirmScreen');
-    const destinationList = document.getElementById('destinationList');
-    const confirmText = document.getElementById('confirmText');
+    let cpId = "";
+    let dir = 0;
 
-    let selectedDestination = '';
+    function showQrScanner() {
+      document.getElementById("start-screen").classList.remove("active");
+      document.getElementById("qr-scanner-screen").classList.add("active");
 
-    function showDestinationScreen() {
-      startScreen.classList.remove('active');
-      destinationScreen.classList.add('active');
+      const qrScanner = new Html5Qrcode("reader");
+
+      qrScanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250
+        },
+        qrCodeMessage => {
+          // 例: "cp03,120"
+          const [id, angle] = qrCodeMessage.split(",");
+          cpId = id;
+          dir = parseFloat(angle);
+
+          qrScanner.stop().then(() => {
+            document.getElementById("qr-scanner-screen").classList.remove("active");
+            document.getElementById("destination-screen").classList.add("active");
+          });
+        },
+        errorMessage => {
+          // console.log("QR読み取りエラー:", errorMessage);
+        }
+      );
     }
 
-    function showConfirmScreen(destinationName) {
-      selectedDestination = destinationName;
-      destinationScreen.classList.remove('active');
-      confirmScreen.classList.add('active');
-      confirmText.textContent = `CP01 → ${destinationName}`;
-    }
-
-    function goBackToDestinations() {
-      confirmScreen.classList.remove('active');
-      destinationScreen.classList.add('active');
-    }
-
-    function startNavigation() {
-      alert(`「${selectedDestination}」への案内を開始します！（ここでナビ画面に遷移予定）`);
-      // ここでナビゲーション画面に遷移する処理を書く予定
-    }
-
-    const destinations = {
-    　'1F': ['1-1 タイトル', '1-2 タイトル', '1-3 タイトル','1-4 タイトル','1-5 タイトル','1-6 タイトル','野外ステージ・模擬店','保健室'],
-      '2F': ['2-1 タイトル', '2-2 タイトル','2-3 タイトル','2-4 タイトル','2-5 タイトル','2-6 タイトル','生物室','科学室','物理室','吹奏楽'],
-      '3F': ['3-1 タイトル', '3-2 タイトル','2-3 タイトル','2-4 タイトル','2-5 タイトル','2-6 タイトル','音楽室','家庭科室'],
-    };
-
-    function showDestinations(floor) {
-      destinationList.innerHTML = '';
-      let list = [];
-      if (floor === 'all') {
-        Object.values(destinations).forEach(arr => list.push(...arr));
-      } else {
-        list = destinations[floor] || [];
-      }
-      list.forEach(name => {
-        const btn = document.createElement('button');
-        btn.textContent = name + ' →';
-        btn.onclick = () => showConfirmScreen(name);
-        destinationList.appendChild(btn);
-      });
+    function selectDestination(destinationName, targetAngle, nextCpId) {
+      alert(
+        `出発: ${cpId}（${dir}°）\n目的地: ${destinationName}\n方角: ${targetAngle}°\n次のCP: ${nextCpId}`
+      );
+      // ↓次は案内確認画面へつなげる
     }
   </script>
+
 </body>
 </html>
