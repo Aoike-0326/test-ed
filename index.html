@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>方向案内デモ</title>
+  <title>方向案内デモ（センサー許可つき）</title>
   <style>
     #arrow {
       width: 100px;
@@ -16,19 +16,57 @@
     }
     #info {
       text-align: center;
+      margin: 10px;
+    }
+    #qrInput {
+      display: block;
+      margin: 0 auto;
+      text-align: center;
+    }
+    #permissionButton {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
+  <button id="permissionButton">📱 ジャイロを許可する</button>
   <div id="arrow"></div>
-  <div id="info">QRを読み取ってね</div>
-  <input type="text" id="qrInput" placeholder="例: cp03,320" style="display:block;margin: 0 auto; text-align:center;" />
+  <div id="info">QRコードを読み取ってね</div>
+  <input type="text" id="qrInput" placeholder="例: cp03,320" />
 
   <script>
     let northOffset = 0;
     let correctedAlpha = null;
+    let permissionGranted = false;
 
-    // QRコードの中身を手動入力（デモ用）
+    // 許可ボタン
+    document.getElementById("permissionButton").addEventListener("click", () => {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              permissionGranted = true;
+              window.addEventListener("deviceorientation", handleOrientation);
+              document.getElementById("info").textContent = "ジャイロ許可完了！";
+            } else {
+              alert("センサーの許可が必要です！");
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Android or PC
+        permissionGranted = true;
+        window.addEventListener("deviceorientation", handleOrientation);
+        document.getElementById("info").textContent = "ジャイロ有効中！";
+      }
+    });
+
+    // QR入力
     document.getElementById("qrInput").addEventListener("change", function () {
       const qrData = this.value.trim(); // 例: cp03,320
       const [cpId, angleStr] = qrData.split(",");
@@ -37,28 +75,29 @@
       document.getElementById("info").textContent = `チェックポイント ${cpId} / QRの向き ${northOffset}° を登録`;
     });
 
-    // ジャイロセンサー
-    window.addEventListener("deviceorientation", (e) => {
+    // ジャイロ処理
+    function handleOrientation(e) {
+      if (!permissionGranted) return;
+
       const alpha = e.alpha;
       if (alpha === null) return;
 
-      // 0のとき復元
+      const storedOffset = parseFloat(localStorage.getItem("northOffset") || "0");
+
       if (alpha === 0 && localStorage.getItem("correctedAlpha")) {
         correctedAlpha = parseFloat(localStorage.getItem("correctedAlpha"));
       } else {
-        const storedOffset = parseFloat(localStorage.getItem("northOffset") || "0");
         correctedAlpha = (alpha + storedOffset) % 360;
         localStorage.setItem("correctedAlpha", correctedAlpha);
       }
 
-      // 目的地の角度（例: 食堂 = 135°）
+      // 仮：目的地の角度（固定）
       const targetAngle = 135;
       const direction = (targetAngle - correctedAlpha + 360) % 360;
 
-      // 回転表示
       document.getElementById("arrow").style.transform = `rotate(${direction}deg)`;
-      document.getElementById("info").textContent += ` / 現在の向き: ${correctedAlpha.toFixed(1)}° → 矢印: ${direction.toFixed(1)}°`;
-    });
+      document.getElementById("info").textContent = `現在の向き: ${correctedAlpha.toFixed(1)}° → 矢印: ${direction.toFixed(1)}°`;
+    }
   </script>
 </body>
 </html>
