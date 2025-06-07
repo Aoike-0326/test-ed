@@ -11,17 +11,14 @@
       padding: 0;
       background: #f0f0f0;
       color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       min-height: 100vh;
     }
 
     .container {
-      text-align: center;
+      max-width: 600px;
+      margin: 0 auto;
       padding: 20px;
-      width: 100%;
+      text-align: center;
     }
 
     h1 {
@@ -37,6 +34,7 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      margin: 0.5em;
     }
 
     .screen {
@@ -70,6 +68,14 @@
       width: 80%;
       text-align: left;
     }
+
+    .confirm-box {
+      background: white;
+      padding: 1.5em;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-top: 1em;
+    }
   </style>
 </head>
 <body>
@@ -92,20 +98,51 @@
       </div>
       <div class="destination-buttons" id="destinationList"></div>
     </div>
+
+    <!-- 案内確認画面 -->
+    <div class="screen" id="confirmScreen">
+      <h1>案内の確認</h1>
+      <div class="confirm-box">
+        <p id="confirmText">CP01 → ???</p>
+        <button onclick="startNavigation()">スタート</button>
+        <button onclick="goBackToDestinations()">＜戻る</button>
+      </div>
+    </div>
   </div>
 
   <script>
     const startScreen = document.getElementById('startScreen');
     const destinationScreen = document.getElementById('destinationScreen');
+    const confirmScreen = document.getElementById('confirmScreen');
     const destinationList = document.getElementById('destinationList');
+    const confirmText = document.getElementById('confirmText');
+
+    let selectedDestination = '';
 
     function showDestinationScreen() {
       startScreen.classList.remove('active');
       destinationScreen.classList.add('active');
     }
 
+    function showConfirmScreen(destinationName) {
+      selectedDestination = destinationName;
+      destinationScreen.classList.remove('active');
+      confirmScreen.classList.add('active');
+      confirmText.textContent = `CP01 → ${destinationName}`;
+    }
+
+    function goBackToDestinations() {
+      confirmScreen.classList.remove('active');
+      destinationScreen.classList.add('active');
+    }
+
+    function startNavigation() {
+      alert(`「${selectedDestination}」への案内を開始します！（ここでナビ画面に遷移予定）`);
+      // ここでナビゲーション画面に遷移する処理を書く予定
+    }
+
     const destinations = {
-   　 '1F': ['1-1 タイトル', '1-2 タイトル', '1-3 タイトル','1-4 タイトル','1-5 タイトル','1-6 タイトル','野外ステージ・模擬店','保健室'],
+    　'1F': ['1-1 タイトル', '1-2 タイトル', '1-3 タイトル','1-4 タイトル','1-5 タイトル','1-6 タイトル','野外ステージ・模擬店','保健室'],
       '2F': ['2-1 タイトル', '2-2 タイトル','2-3 タイトル','2-4 タイトル','2-5 タイトル','2-6 タイトル','生物室','科学室','物理室','吹奏楽'],
       '3F': ['3-1 タイトル', '3-2 タイトル','2-3 タイトル','2-4 タイトル','2-5 タイトル','2-6 タイトル','音楽室','家庭科室'],
     };
@@ -121,7 +158,7 @@
       list.forEach(name => {
         const btn = document.createElement('button');
         btn.textContent = name + ' →';
-        btn.onclick = () => alert(`目的地「${name}」が選択されました`);
+        btn.onclick = () => showConfirmScreen(name);
         destinationList.appendChild(btn);
       });
     }
