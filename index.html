@@ -2,73 +2,111 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>文化祭案内アプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>〇〇高校ナビゲーション</title>
   <style>
     body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+      color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      margin: 0;
-      font-family: sans-serif;
     }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+    }
+
     h1 {
-      margin-bottom: 1rem;
+      font-size: 1.8em;
+      margin-bottom: 1em;
     }
-    #arrow {
-      width: 100px;
-      height: 100px;
-      transition: transform 0.2s ease;
+
+    button {
+      padding: 1em 2em;
+      font-size: 1em;
+      background-color: #0088cc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .floor-buttons button,
+    .destination-buttons button {
+      margin: 0.5em;
+      padding: 0.7em 1.5em;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
-  <h1 id="cp-label">チェックポイント</h1>
-  <img id="arrow" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Arrow_simple.svg/512px-Arrow_simple.svg.png" alt="矢印">
-  <p id="debug"></p>
+  <div class="container">
+    <!-- 起動画面 -->
+    <div class="screen active" id="startScreen">
+      <h1>〇〇高校<br>ナビゲーションシステム</h1>
+      <button onclick="showDestinationScreen()">案内を開始する</button>
+      <p style="margin-top: 1em; font-size: 0.9em; color: gray;">※ モーションと方向の許可をお願いします</p>
+    </div>
+
+    <!-- 目的地選択画面 -->
+    <div class="screen" id="destinationScreen">
+      <h1>目的地を選択してください</h1>
+      <div class="floor-buttons">
+        <button onclick="showDestinations('1F')">1F</button>
+        <button onclick="showDestinations('2F')">2F</button>
+        <button onclick="showDestinations('3F')">3F</button>
+        <button onclick="showDestinations('all')">一覧</button>
+      </div>
+      <div class="destination-buttons" id="destinationList"></div>
+    </div>
+  </div>
 
   <script>
-    // URLからクエリ取得
-    const urlParams = new URLSearchParams(window.location.search);
-    const cpId = urlParams.get("cp") || "unknown";
-    const baseAngle = parseFloat(urlParams.get("dir") || "0");
-    const targetAngle = parseFloat(urlParams.get("target") || "0");
+    const startScreen = document.getElementById('startScreen');
+    const destinationScreen = document.getElementById('destinationScreen');
+    const destinationList = document.getElementById('destinationList');
 
-    document.getElementById("cp-label").textContent = `現在地：${cpId}`;
-
-    // 矢印の向き更新
-    function updateArrow(rotation) {
-      const arrow = document.getElementById("arrow");
-      arrow.style.transform = `rotate(${rotation}deg)`;
+    function showDestinationScreen() {
+      startScreen.classList.remove('active');
+      destinationScreen.classList.add('active');
     }
 
-    // 方位取得イベント
-    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-    window.addEventListener('deviceorientation', handleOrientation, true); // fallback
+    const destinations = {
+      '1F': ['1-1 タイトル', '1-2 タイトル', '1-3 タイトル'],
+      '2F': ['2-1 タイトル', '2-2 タイトル'],
+      '3F': ['3-1 タイトル', '3-2 タイトル'],
+      '野外': ['野外ステージ'],
+    };
 
-    function handleOrientation(event) {
-      let alpha = event.alpha;
-
-      if (typeof alpha !== "number") return;
-
-      // 現在の方位（基準調整）
-      let currentHeading = alpha;
-
-      // iOS Safari の補正
-      if (event.webkitCompassHeading !== undefined) {
-        currentHeading = event.webkitCompassHeading;
+    function showDestinations(floor) {
+      destinationList.innerHTML = '';
+      let list = [];
+      if (floor === 'all') {
+        Object.values(destinations).forEach(arr => list.push(...arr));
+      } else {
+        list = destinations[floor] || [];
       }
-
-      // 実際の向き（基準角から見て）
-      const relativeHeading = (currentHeading - baseAngle + 360) % 360;
-
-      // 矢印が指すべき角度（相対的）
-      const angleToTarget = (targetAngle - relativeHeading + 360) % 360;
-
-      updateArrow(angleToTarget);
-      document.getElementById("debug").textContent =
-        `現在角: ${Math.round(currentHeading)}°, 目標角: ${targetAngle}°, 相対角: ${Math.round(angleToTarget)}°`;
+      list.forEach(name => {
+        const btn = document.createElement('button');
+        btn.textContent = name + ' →';
+        btn.onclick = () => alert(`目的地「${name}」が選択されました`);
+        destinationList.appendChild(btn);
+      });
     }
   </script>
 </body>
