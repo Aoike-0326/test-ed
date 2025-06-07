@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>方向案内デモ</title>
+  <style>
+    #arrow {
+      width: 100px;
+      height: 100px;
+      background: red;
+      clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
+      margin: 50px auto;
+      transform: rotate(0deg);
+      transition: transform 0.2s linear;
+    }
+    #info {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="arrow"></div>
+  <div id="info">QRを読み取ってね</div>
+  <input type="text" id="qrInput" placeholder="例: cp03,320" style="display:block;margin: 0 auto; text-align:center;" />
+
+  <script>
+    let northOffset = 0;
+    let correctedAlpha = null;
+
+    // QRコードの中身を手動入力（デモ用）
+    document.getElementById("qrInput").addEventListener("change", function () {
+      const qrData = this.value.trim(); // 例: cp03,320
+      const [cpId, angleStr] = qrData.split(",");
+      northOffset = parseFloat(angleStr);
+      localStorage.setItem("northOffset", northOffset);
+      document.getElementById("info").textContent = `チェックポイント ${cpId} / QRの向き ${northOffset}° を登録`;
+    });
+
+    // ジャイロセンサー
+    window.addEventListener("deviceorientation", (e) => {
+      const alpha = e.alpha;
+      if (alpha === null) return;
+
+      // 0のとき復元
+      if (alpha === 0 && localStorage.getItem("correctedAlpha")) {
+        correctedAlpha = parseFloat(localStorage.getItem("correctedAlpha"));
+      } else {
+        const storedOffset = parseFloat(localStorage.getItem("northOffset") || "0");
+        correctedAlpha = (alpha + storedOffset) % 360;
+        localStorage.setItem("correctedAlpha", correctedAlpha);
+      }
+
+      // 目的地の角度（例: 食堂 = 135°）
+      const targetAngle = 135;
+      const direction = (targetAngle - correctedAlpha + 360) % 360;
+
+      // 回転表示
+      document.getElementById("arrow").style.transform = `rotate(${direction}deg)`;
+      document.getElementById("info").textContent += ` / 現在の向き: ${correctedAlpha.toFixed(1)}° → 矢印: ${direction.toFixed(1)}°`;
+    });
+  </script>
+</body>
+</html>
