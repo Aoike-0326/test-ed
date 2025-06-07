@@ -3,100 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>方向案内デモ（センサー許可つき）</title>
+  <title>方向案内テスト</title>
   <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
     #arrow {
-      width: 100px;
-      height: 100px;
-      background: red;
-      clip-path: polygon(50% 0%, 100% 100%, 50% 80%, 0% 100%);
-      margin: 50px auto;
+      font-size: 100px;
+      display: block;
       transform: rotate(0deg);
       transition: transform 0.2s linear;
     }
     #info {
-      text-align: center;
-      margin: 10px;
-    }
-    #qrInput {
-      display: block;
-      margin: 0 auto;
-      text-align: center;
-    }
-    #permissionButton {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
+      margin-top: 20px;
       font-size: 16px;
     }
   </style>
 </head>
 <body>
-  <button id="permissionButton">📱 ジャイロを許可する</button>
-  <div id="arrow"></div>
-  <div id="info">QRコードを読み取ってね</div>
+  <h1>方向案内テスト</h1>
+  <button id="requestPermission">ジャイロ許可</button>
+  <br><br>
   <input type="text" id="qrInput" placeholder="例: cp03,320" />
+  <button id="loadQR">QR読込</button>
+  <div id="arrow">⬆️</div>
+  <div id="info">情報を待っています...</div>
 
   <script>
-    let northOffset = 0;
-    let correctedAlpha = null;
-    let permissionGranted = false;
+    let northOffset = parseFloat(localStorage.getItem("northOffset")) || null;
+    let targetAngle = 0;
 
-    // 許可ボタン
-    document.getElementById("permissionButton").addEventListener("click", () => {
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        // iOS
-        DeviceOrientationEvent.requestPermission()
-          .then(response => {
-            if (response === 'granted') {
-              permissionGranted = true;
-              window.addEventListener("deviceorientation", handleOrientation);
-              document.getElementById("info").textContent = "ジャイロ許可完了！";
-            } else {
-              alert("センサーの許可が必要です！");
-            }
-          })
-          .catch(console.error);
+    document.getElementById("requestPermission").addEventListener("click", () => {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(permissionState => {
+          if (permissionState === 'granted') {
+            window.addEventListener("deviceorientationabsolute", handleOrientation);
+          } else {
+            alert("ジャイロの許可が必要です！");
+          }
+        }).catch(console.error);
       } else {
-        // Android or PC
-        permissionGranted = true;
-        window.addEventListener("deviceorientation", handleOrientation);
-        document.getElementById("info").textContent = "ジャイロ有効中！";
+        window.addEventListener("deviceorientationabsolute", handleOrientation);
       }
     });
 
-    // QR入力
-    document.getElementById("qrInput").addEventListener("change", function () {
-      const qrData = this.value.trim(); // 例: cp03,320
-      const [cpId, angleStr] = qrData.split(",");
-      northOffset = parseFloat(angleStr);
-      localStorage.setItem("northOffset", northOffset);
-      document.getElementById("info").textContent = `チェックポイント ${cpId} / QRの向き ${northOffset}° を登録`;
+    document.getElementById("loadQR").addEventListener("click", () => {
+      const input = document.getElementById("qrInput").value;
+      const [cp, angle] = input.split(",");
+      if (angle !== undefined) {
+        targetAngle = parseFloat(angle);
+        if (!isNaN(targetAngle)) {
+          northOffset = null; // リセットして新しい向きでスタート
+          localStorage.removeItem("northOffset");
+        }
+      }
     });
 
-    // ジャイロ処理
-    function handleOrientation(e) {
-      if (!permissionGranted) return;
+    function handleOrientation(event) {
+      const alpha = event.alpha;
+      if (alpha == null) return;
 
-      const alpha = e.alpha;
-      if (alpha === null) return;
-
-      const storedOffset = parseFloat(localStorage.getItem("northOffset") || "0");
-
-      if (alpha === 0 && localStorage.getItem("correctedAlpha")) {
-        correctedAlpha = parseFloat(localStorage.getItem("correctedAlpha"));
-      } else {
-        correctedAlpha = (alpha + storedOffset) % 360;
-        localStorage.setItem("correctedAlpha", correctedAlpha);
+      // 初期向きを0として保存
+      if (northOffset === null) {
+        northOffset = alpha;
+        localStorage.setItem("northOffset", northOffset);
       }
 
-      // 仮：目的地の角度（固定）
-      const targetAngle = 135;
+      // 北からの実際の向き
+      const correctedAlpha = (alpha - northOffset + 360) % 360;
+
+      // 時計回りで目的地までの角度差を計算
       const direction = (targetAngle - correctedAlpha + 360) % 360;
 
-      document.getElementById("arrow").style.transform = `rotate(${direction}deg)`;
-      document.getElementById("info").textContent = `現在の向き: ${correctedAlpha.toFixed(1)}° → 矢印: ${direction.toFixed(1)}°`;
+      // 矢印回転
+      const arrow = document.getElementById("arrow");
+      arrow.style.transform = `rotate(${direction}deg)`;
+
+      // 情報表示
+      document.getElementById("info").textContent =
+        `今の向き: ${correctedAlpha.toFixed(1)}° ／ 目的地: ${targetAngle}° ／ 矢印: ${direction.toFixed(1)}°`;
     }
   </script>
 </body>
