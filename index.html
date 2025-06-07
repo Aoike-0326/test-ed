@@ -4,39 +4,64 @@
   <meta charset="UTF-8">
   <title>文化祭案内アプリ</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
-      font-family: sans-serif;
+      font-family: 'Arial', sans-serif;
       background: #f8f8f8;
       margin: 0;
-      padding: 20px;
+      padding: 0;
     }
     .section {
       display: none;
+      padding: 30px 20px;
+      text-align: center;
     }
     .section.active {
       display: block;
     }
+    h1, h2, p {
+      font-size: 1.5rem;
+      margin: 1em 0;
+    }
     .btn {
-      padding: 10px 20px;
-      font-size: 16px;
+      padding: 15px 30px;
+      font-size: 1.2rem;
       background: #007bff;
       color: white;
       border: none;
-      border-radius: 6px;
-      margin-top: 10px;
+      border-radius: 8px;
+      margin-top: 20px;
       cursor: pointer;
     }
-    .destination-list button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      margin: 5px 0;
-      padding: 10px;
+    #reader {
+      margin: auto;
+      width: 90vw;
+      max-width: 400px;
+      height: auto;
+    }
+    .destination-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .destination-item {
       background: white;
+      border-radius: 10px;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      font-size: 1.2rem;
+      padding: 15px 20px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       cursor: pointer;
+    }
+    .arrow {
+      font-weight: bold;
+      font-size: 1.2rem;
     }
   </style>
 </head>
@@ -52,16 +77,22 @@
   <!-- QR読み取り -->
   <div class="section" id="qr-scanner-screen">
     <h2>QRコードをスキャンしてください</h2>
-    <div id="reader" style="width: 300px;"></div>
+    <div id="reader"></div>
   </div>
 
   <!-- 目的地選択 -->
   <div class="section" id="destination-screen">
-    <h2>目的地を選択してください</h2>
+    <h2>目的地を選んでください</h2>
     <div class="destination-list">
-      <button onclick="selectDestination('3-4', 45, 'cp03')">3-4 →</button>
-      <button onclick="selectDestination('2-2', 120, 'cp07')">2-2 →</button>
-      <button onclick="selectDestination('野外ステージ', 200, 'cp10')">野外ステージ →</button>
+      <div class="destination-item" onclick="selectDestination('3-4', 45, 'cp03')">
+        <span>3-4</span> <span class="arrow">→</span>
+      </div>
+      <div class="destination-item" onclick="selectDestination('2-2', 120, 'cp07')">
+        <span>2-2</span> <span class="arrow">→</span>
+      </div>
+      <div class="destination-item" onclick="selectDestination('野外ステージ', 200, 'cp10')">
+        <span>野外ステージ</span> <span class="arrow">→</span>
+      </div>
     </div>
   </div>
 
@@ -74,15 +105,10 @@
       document.getElementById("qr-scanner-screen").classList.add("active");
 
       const qrScanner = new Html5Qrcode("reader");
-
       qrScanner.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: 250
-        },
+        { fps: 10, qrbox: 300 },
         qrCodeMessage => {
-          // 例: "cp03,120"
           const [id, angle] = qrCodeMessage.split(",");
           cpId = id;
           dir = parseFloat(angle);
@@ -93,16 +119,14 @@
           });
         },
         errorMessage => {
-          // console.log("QR読み取りエラー:", errorMessage);
+          // 失敗時の処理（今は無視）
         }
       );
     }
 
     function selectDestination(destinationName, targetAngle, nextCpId) {
-      alert(
-        `出発: ${cpId}（${dir}°）\n目的地: ${destinationName}\n方角: ${targetAngle}°\n次のCP: ${nextCpId}`
-      );
-      // ↓次は案内確認画面へつなげる
+      alert(`出発: ${cpId}（${dir}°）\n目的地: ${destinationName}\n方角: ${targetAngle}°\n次: ${nextCpId}`);
+      // 次の案内確認画面へ進む準備
     }
   </script>
 
