@@ -1,60 +1,74 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>ジャイロテスト</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <title>文化祭案内アプリ</title>
   <style>
     body {
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
       font-family: sans-serif;
-      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 1rem;
     }
     #arrow {
-      font-size: 100px;
-      transform: rotate(0deg);
-      transition: transform 0.2s linear;
-      display: block;
-      margin: 40px auto;
+      width: 100px;
+      height: 100px;
+      transition: transform 0.2s ease;
     }
   </style>
 </head>
 <body>
-  <h1>ジャイロテスト</h1>
-  <button id="requestPermission">ジャイロ許可</button>
-  <div id="arrow">⬆️</div>
-  <div id="info">待機中...</div>
+  <h1 id="cp-label">チェックポイント</h1>
+  <img id="arrow" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Arrow_simple.svg/512px-Arrow_simple.svg.png" alt="矢印">
+  <p id="debug"></p>
 
   <script>
-    let baseAlpha = null;
+    // URLからクエリ取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const cpId = urlParams.get("cp") || "unknown";
+    const baseAngle = parseFloat(urlParams.get("dir") || "0");
+    const targetAngle = parseFloat(urlParams.get("target") || "0");
 
-    document.getElementById("requestPermission").addEventListener("click", () => {
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(state => {
-          if (state === 'granted') {
-            window.addEventListener("deviceorientation", handleOrientation);
-          } else {
-            alert("ジャイロの許可が必要です！");
-          }
-        }).catch(console.error);
-      } else {
-        window.addEventListener("deviceorientation", handleOrientation);
-      }
-    });
+    document.getElementById("cp-label").textContent = `現在地：${cpId}`;
+
+    // 矢印の向き更新
+    function updateArrow(rotation) {
+      const arrow = document.getElementById("arrow");
+      arrow.style.transform = `rotate(${rotation}deg)`;
+    }
+
+    // 方位取得イベント
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('deviceorientation', handleOrientation, true); // fallback
 
     function handleOrientation(event) {
-      const alpha = event.alpha;
-      if (alpha == null) return;
+      let alpha = event.alpha;
 
-      if (baseAlpha === null) {
-        baseAlpha = alpha;
+      if (typeof alpha !== "number") return;
+
+      // 現在の方位（基準調整）
+      let currentHeading = alpha;
+
+      // iOS Safari の補正
+      if (event.webkitCompassHeading !== undefined) {
+        currentHeading = event.webkitCompassHeading;
       }
 
-      const angle = (alpha - baseAlpha + 360) % 360;
+      // 実際の向き（基準角から見て）
+      const relativeHeading = (currentHeading - baseAngle + 360) % 360;
 
-      document.getElementById("arrow").style.transform = `rotate(${angle}deg)`;
-      document.getElementById("info").textContent =
-        `現在の向き: ${alpha.toFixed(1)}° ／ 差分: ${angle.toFixed(1)}°`;
+      // 矢印が指すべき角度（相対的）
+      const angleToTarget = (targetAngle - relativeHeading + 360) % 360;
+
+      updateArrow(angleToTarget);
+      document.getElementById("debug").textContent =
+        `現在角: ${Math.round(currentHeading)}°, 目標角: ${targetAngle}°, 相対角: ${Math.round(angleToTarget)}°`;
     }
   </script>
 </body>
