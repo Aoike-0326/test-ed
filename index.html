@@ -152,9 +152,8 @@ function showQrScanner() {
         qrScanner.stop().then(() => showSection("direction-confirm-screen"));
       },
       err => {
-        alert("QR読み取りが起動できません：" + JSON.stringify(err));
-        console.error("QR起動エラー:", err);
-      }
+  console.warn("QR読み取り中エラー:", err); // ← これだけにしよう！
+}
     );
   }, 300);
 }
