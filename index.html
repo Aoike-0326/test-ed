@@ -144,7 +144,11 @@ function showQrScanner() {
       qrDir = parseFloat(angle);
       qrScanner.stop().then(() => showSection("direction-confirm-screen"));
     },
-    err => {}
+    err => {
+  console.error("QRエラー:", err);
+  alert("QRの起動に失敗しました：" + err);
+}
+
   );
 }
 
