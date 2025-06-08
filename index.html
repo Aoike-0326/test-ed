@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>文化祭案内SPA</title>
+  <title>文化祭案内SPA（QR修正）</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -55,6 +55,11 @@
       font-weight: bold;
       font-size: 1.2rem;
     }
+    #reader {
+      width: 90vw;
+      max-width: 400px;
+      margin: auto;
+    }
   </style>
 </head>
 <body>
@@ -69,7 +74,7 @@
 <!-- QR読み取り -->
 <div class="section" id="qr-scanner-screen">
   <h2>QRコードをスキャンしてください</h2>
-  <div id="reader" style="width:90vw; max-width:400px; margin:auto;"></div>
+  <div id="reader"></div>
 </div>
 
 <!-- 方角補正画面 -->
@@ -135,7 +140,7 @@ function showSection(id) {
 function showQrScanner() {
   showSection("qr-scanner-screen");
 
-  // ← ここで表示が完了してから起動するように時間差をつける！
+  // 少し遅らせて表示後に初期化する
   setTimeout(() => {
     const qrScanner = new Html5Qrcode("reader");
     qrScanner.start(
@@ -152,9 +157,8 @@ function showQrScanner() {
         console.error("QR起動エラー:", err);
       }
     );
-  }, 300); // ← 300msくらい遅らせると安定する！
+  }, 300);
 }
-
 
 function confirmDirection() {
   window.addEventListener('deviceorientation', event => {
