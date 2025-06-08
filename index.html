@@ -134,21 +134,27 @@ function showSection(id) {
 
 function showQrScanner() {
   showSection("qr-scanner-screen");
-  const qrScanner = new Html5Qrcode("reader");
-qrScanner.start(
-  { facingMode: "environment" },
-  { fps: 10, qrbox: 300 },
-  msg => {
-    // 正常時…そのままでOK
-  },
-- err => {}
-+ err => {
-+   console.error("QR起動でエラー:", err);
-+   alert("QR読み取りが起動できません：\n" + JSON.stringify(err));
-+ }
-);
 
+  // ← ここで表示が完了してから起動するように時間差をつける！
+  setTimeout(() => {
+    const qrScanner = new Html5Qrcode("reader");
+    qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 300 },
+      msg => {
+        const [id, angle] = msg.split(",");
+        cpId = id;
+        qrDir = parseFloat(angle);
+        qrScanner.stop().then(() => showSection("direction-confirm-screen"));
+      },
+      err => {
+        alert("QR読み取りが起動できません：" + JSON.stringify(err));
+        console.error("QR起動エラー:", err);
+      }
+    );
+  }, 300); // ← 300msくらい遅らせると安定する！
 }
+
 
 function confirmDirection() {
   window.addEventListener('deviceorientation', event => {
