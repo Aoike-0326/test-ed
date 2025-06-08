@@ -2,17 +2,16 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>文化祭ナビ（QR読み取り安定版）</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>文化祭ナビ（UI修正版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
-  font-family: 'Zen Maru Gothic', sans-serif;
-  background: #f8f8f8;
-  margin: 0;
-}
-
+      font-family: 'Zen Maru Gothic', sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+      color: #333;
     }
     .section {
       display: none;
@@ -23,23 +22,23 @@
       display: block;
     }
     h1, h2, p {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       margin: 1em 0;
     }
     .btn {
       padding: 15px 30px;
-      font-size: 1.2rem;
-      background: #007bff;
+      font-size: 1.3rem;
+      background: #4a90e2;
       color: white;
       border: none;
-      border-radius: 8px;
-      margin-top: 20px;
+      border-radius: 12px;
+      margin: 15px auto;
       cursor: pointer;
     }
     .destination-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       max-width: 500px;
       margin: 0 auto;
     }
@@ -47,16 +46,17 @@
       background: white;
       border-radius: 10px;
       border: 1px solid #ccc;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       padding: 15px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .arrow {
       font-weight: bold;
-      font-size: 1.2rem;
+      font-size: 1.5rem;
     }
     #reader {
       width: 90vw;
@@ -90,9 +90,7 @@
 <!-- 目的地選択 -->
 <div class="section" id="destination-screen">
   <h2>目的地を選んでください</h2>
-  <div class="destination-list" id="destination-list">
-    <!-- 自動生成 -->
-  </div>
+  <div class="destination-list" id="destination-list"></div>
 </div>
 
 <!-- 案内確認画面 -->
@@ -137,7 +135,8 @@ let currentStep = 0;
 
 function showSection(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+  const section = document.getElementById(id);
+  if (section) section.classList.add("active");
 }
 
 function showQrScanner() {
@@ -155,9 +154,12 @@ function showQrScanner() {
         qrScanner.stop().then(() => showSection("direction-confirm-screen"));
       },
       err => {
-  console.warn("QR読み取り中エラー:", err); // ← これだけにしよう！
-}
-    );
+        console.warn("読み取り中:", err);
+      }
+    ).catch(err => {
+      alert("QR起動に失敗しました：" + err);
+      console.error("起動エラー:", err);
+    });
   }, 300);
 }
 
