@@ -135,21 +135,19 @@ function showSection(id) {
 function showQrScanner() {
   showSection("qr-scanner-screen");
   const qrScanner = new Html5Qrcode("reader");
-  qrScanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 300 },
-    msg => {
-      const [id, angle] = msg.split(",");
-      cpId = id;
-      qrDir = parseFloat(angle);
-      qrScanner.stop().then(() => showSection("direction-confirm-screen"));
-    },
-    err => {
-  console.error("QRエラー:", err);
-  alert("QRの起動に失敗しました：" + err);
-}
+qrScanner.start(
+  { facingMode: "environment" },
+  { fps: 10, qrbox: 300 },
+  msg => {
+    // 正常時…そのままでOK
+  },
+- err => {}
++ err => {
++   console.error("QR起動でエラー:", err);
++   alert("QR読み取りが起動できません：\n" + JSON.stringify(err));
++ }
+);
 
-  );
 }
 
 function confirmDirection() {
