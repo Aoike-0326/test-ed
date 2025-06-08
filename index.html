@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>文化祭案内SPA（QR修正）</title>
+  <title>文化祭ナビ（QR読み取り安定版）</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -140,7 +140,6 @@ function showSection(id) {
 function showQrScanner() {
   showSection("qr-scanner-screen");
 
-  // 少し遅らせて表示後に初期化する
   setTimeout(() => {
     const qrScanner = new Html5Qrcode("reader");
     qrScanner.start(
@@ -174,7 +173,7 @@ function showDestinations() {
   destinations.forEach(dest => {
     const div = document.createElement("div");
     div.className = "destination-item";
-    div.innerHTML = \`<span>\${dest.name}</span><span class="arrow">→</span>\`;
+    div.innerHTML = `<span>${dest.name}</span><span class="arrow">→</span>`;
     div.onclick = () => selectDestination(dest);
     list.appendChild(div);
   });
@@ -185,7 +184,7 @@ function selectDestination(dest) {
   currentRoute = dest.route;
   currentStep = 0;
   const next = currentRoute[0]?.next ?? "goal";
-  document.getElementById("confirm-route").textContent = \`出発: \${cpId} → 目的地: \${dest.name}（次: \${next}）\`;
+  document.getElementById("confirm-route").textContent = `出発: ${cpId} → 目的地: ${dest.name}（次: ${next}）`;
   showSection("confirm-screen");
 }
 
@@ -204,8 +203,8 @@ function updateNav() {
     showSection("goal-screen");
     return;
   }
-  document.getElementById("nav-heading").textContent = \`次の目的地: \${step.next}\`;
-  document.getElementById("nav-info").textContent = \`この方向（\${step.target}°）に進んでください\`;
+  document.getElementById("nav-heading").textContent = `次の目的地: ${step.next}`;
+  document.getElementById("nav-info").textContent = `この方向（${step.target}°）に進んでください`;
 }
 
 function simulateArrival() {
