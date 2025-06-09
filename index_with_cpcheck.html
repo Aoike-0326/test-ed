@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>文化祭ナビ（チェックポイント確認機能付き）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .section {
+      display: none;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .section.active {
+      display: block;
+    }
+    .center-screen {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    h1, h2, p {
+      font-size: 1.6rem;
+      margin: 1em 0;
+    }
+    .btn {
+      padding: 15px 30px;
+      font-size: 1.3rem;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      margin: 15px auto;
+      cursor: pointer;
+    }
+    .destination-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .destination-item {
+      background: white;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 1.3rem;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .arrow {
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+    #reader {
+      width: 90vw;
+      max-width: 400px;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 起動画面 -->
+<div class="section active center-screen" id="start-screen">
+  <h1>〇〇高校 文化祭ナビ</h1>
+  <button class="btn" onclick="showQrScanner()">出発地点QRを読み取る</button>
+  <p>※カメラの許可をしてください</p>
+</div>
+
+<!-- QR読み取り -->
+<div class="section" id="qr-scanner-screen">
+  <h2>QRコードをスキャンしてください</h2>
+  <div id="reader"></div>
+</div>
+
+<!-- 方角補正画面 -->
+<div class="section center-screen" id="direction-confirm-screen">
+  <h2>QRコードの方向を向いてください</h2>
+  <p>QRコードが貼られていた方向にスマホを向けて、「この向きでOK」を押してください。</p>
+  <button class="btn" onclick="confirmDirection()">この向きでOK</button>
+</div>
+
+<!-- 目的地選択 -->
+<div class="section" id="destination-screen">
+  <h2>目的地を選んでください</h2>
+  <div class="destination-list" id="destination-list"></div>
+</div>
+
+<!-- 案内確認画面 -->
+<div class="section" id="confirm-screen">
+  <h2 id="confirm-route">案内を開始しますか？</h2>
+  <button class="btn" onclick="startNavigation()">スタート</button>
+  <button class="btn" onclick="goBackToDestinations()">戻る</button>
+</div>
+
+<!-- ナビ画面 -->
+<div class="section center-screen" id="navigation-screen">
+  <h2 id="nav-heading">目的地へ案内中…</h2>
+  <p id="nav-info">次のチェックポイントへ進んでください</p>
+  <button class="btn" onclick="scanCheckpoint()">チェックポイントQRを読み取る</button>
+</div>
+
+<!-- ルートエラー画面 -->
+<div class="section center-screen" id="route-error-screen">
+  <h2>現在地がルートと一致しません</h2>
+  <p>違うチェックポイントを読み取ったようです。</p>
+  <button class="btn" onclick="restartRoute()">ルートを再設定する</button>
+  <button class="btn" onclick="endNavigation()">案内を終了する</button>
+</div>
+
+<!-- 到着画面 -->
+<div class="section" id="goal-screen">
+  <h2>目的地に到着しました！</h2>
+  <p>この後も〇〇高校文化祭をお楽しみください</p>
+</div>
+
+<script>
+let cpId = "";
+let qrDir = 0;
+let phoneDir = 0;
+let baseAngle = 0;
+
+const destinations = [
+  {
+    name: "3-4",
+    route: [
+      { cp: "cp03", target: 45, next: "cp06" },
+      { cp: "cp06", target: 120, next: "cp11" },
+      { cp: "cp11", target: 200, next: "goal" }
+    ]
+  }
+];
+
+let currentRoute = [];
+let currentStep = 0;
+
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  const section = document.getElementById(id);
+  if (section) section.classList.add("active");
+}
+
+function showQrScanner() {
+  showSection("qr-scanner-screen");
+
+  setTimeout(() => {
+    const qrScanner = new Html5Qrcode("reader");
+    qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 300 },
+      msg => {
+        const [id, angle] = msg.split(",");
+        cpId = id;
+        qrDir = parseFloat(angle);
+        qrScanner.stop().then(() => showSection("direction-confirm-screen"));
+      },
+      err => {
+        console.warn("読み取り中:", err);
+      }
+    ).catch(err => {
+      alert("QR起動に失敗しました：" + err);
+      console.error("起動エラー:", err);
+    });
+  }, 300);
+}
+
+function confirmDirection() {
+  window.addEventListener('deviceorientation', event => {
+    phoneDir = event.alpha ?? 0;
+    baseAngle = (qrDir - phoneDir + 360) % 360;
+  }, { once: true });
+  showDestinations();
+}
+
+function showDestinations() {
+  const list = document.getElementById("destination-list");
+  list.innerHTML = "";
+  destinations.forEach(dest => {
+    const div = document.createElement("div");
+    div.className = "destination-item";
+    div.innerHTML = `<span>${dest.name}</span><span class="arrow">→</span>`;
+    div.onclick = () => selectDestination(dest);
+    list.appendChild(div);
+  });
+  showSection("destination-screen");
+}
+
+function selectDestination(dest) {
+  currentRoute = dest.route;
+  currentStep = 0;
+  const next = currentRoute[0]?.next ?? "goal";
+  document.getElementById("confirm-route").textContent = `出発: ${cpId} → 目的地: ${dest.name}（次: ${next}）`;
+  showSection("confirm-screen");
+}
+
+function goBackToDestinations() {
+  showSection("destination-screen");
+}
+
+function startNavigation() {
+  showSection("navigation-screen");
+  updateNav();
+}
+
+function updateNav() {
+  const step = currentRoute[currentStep];
+  if (!step) {
+    showSection("goal-screen");
+    return;
+  }
+  document.getElementById("nav-heading").textContent = `次の目的地: ${step.next}`;
+  document.getElementById("nav-info").textContent = `この方向（${step.target}°）に進んでください`;
+}
+
+function scanCheckpoint() {
+  const scanner = new Html5Qrcode("reader");
+  showSection("qr-scanner-screen");
+
+  setTimeout(() => {
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 300 },
+      msg => {
+        const [scannedCp, angle] = msg.split(",");
+        scanner.stop().then(() => {
+          const expected = currentRoute[currentStep]?.next;
+          if (scannedCp === expected) {
+            currentStep++;
+            updateNav();
+          } else {
+            showSection("route-error-screen");
+          }
+        });
+      },
+      err => {
+        console.warn("読み取り中:", err);
+      }
+    ).catch(err => {
+      alert("QR起動に失敗しました：" + err);
+      console.error("起動エラー:", err);
+    });
+  }, 300);
+}
+
+function restartRoute() {
+  showSection("start-screen");
+  currentRoute = [];
+  currentStep = 0;
+}
+
+function endNavigation() {
+  showSection("goal-screen");
+}
+</script>
+
+</body>
+</html>
